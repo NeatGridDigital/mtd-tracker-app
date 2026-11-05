@@ -1353,7 +1353,12 @@ animation:spark .9s cubic-bezier(.15,.7,.3,1) both}
     if (!S.startedAt) S.startedAt = new Date().toISOString();
     applyTheme(); render();
   });
-  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) navigator.serviceWorker.register("sw.js").catch(function () {});
+  // New version: the new worker takes over, then the page reloads once so the update shows straight away.
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    var hadSW = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function () { if (hadSW && !reloaded) { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (r) { r.update(); }).catch(function () {});
+  }
 })();
 </script>
 </body></html>
