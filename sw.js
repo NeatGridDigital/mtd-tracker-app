@@ -1,5 +1,5 @@
-// offline cache, version 659750c65c
-var CACHE = "mtd-659750c65c", FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
+// offline cache, version cba86cb3ff
+var CACHE = "mtd-cba86cb3ff", FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 self.addEventListener("install", function (e) { e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); })); self.skipWaiting(); });
 self.addEventListener("activate", function (e) { e.waitUntil(caches.keys().then(function (k) { return Promise.all(k.filter(function (n) { return n !== CACHE; }).map(function (n) { return caches.delete(n); })); })); self.clients.claim(); });
 self.addEventListener("fetch", function (e) {

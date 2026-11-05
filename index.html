@@ -272,6 +272,10 @@ animation:spark .9s cubic-bezier(.15,.7,.3,1) both}
 :root[data-theme="dark"] .hero2{box-shadow:0 12px 30px rgba(0,0,0,.4)}
 @media (prefers-reduced-motion:reduce){.enter *,.stamp *{animation:none!important}}
 .pot .pay{white-space:nowrap}
+
+.inote{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:16px;padding:12px 10px 12px 14px;margin:0 0 14px;border-left:4px solid var(--brass);box-shadow:var(--shadow)}
+.inote>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.inote b{font-size:15px}.inote span{font-size:13px;color:var(--muted)}
+.inote .btn{flex:none;min-height:38px;padding:8px 14px;width:auto}.inote .x{width:32px;height:32px;font-size:17px}
 </style></head>
 <body><div id="app"></div>
 <noscript>This app needs JavaScript turned on.</noscript>
@@ -635,7 +639,7 @@ animation:spark .9s cubic-bezier(.15,.7,.3,1) both}
     $app.innerHTML = '<div class="app' + (enter ? " enter" : "") + '"><header class="top"><h1>' + title +
       '</h1><div class="brand">' + IC.logo + "Tax year " + esc(S.settings.year) + "</div></header>" +
       (S.asOf && !empty ? '<div class="banner">Showing the sample as on ' + esc(fmtDate(S.asOf, true)) + '. Clear it under More › Backup &amp; export.</div>' : "") +
-      body + "</div>" + nav() + (empty ? "" : fabFor());
+      (view.tab === "home" ? installNote() : "") + body + "</div>" + nav() + (empty ? "" : fabFor());
     if (enter) countUp();
   }
   function countUp() {
@@ -1036,6 +1040,14 @@ animation:spark .9s cubic-bezier(.15,.7,.3,1) both}
       '<label class="btn" style="display:block;text-align:center">Open a bank CSV file<input id="bankFile" type="file" accept=".csv,text/csv,text/plain" hidden></label>' +
       '<p class="small muted" style="margin-bottom:0">Lines already in your records (same date, description and amount) are skipped.</p></div>';
   }
+  // Install note at the top of Home (as in the wedding app). Per device, so kept in localStorage, not in the synced data.
+  function flag(k, set) { try { if (set === undefined) localStorage.setItem("mtd-" + k, "1"); return localStorage.getItem("mtd-" + k) === "1"; } catch (e) { return false; } }
+  function installNote() {
+    var sa = window.matchMedia && matchMedia("(display-mode: standalone)").matches;
+    if (sa || window.navigator.standalone || flag("installed", null) || flag("noInstall", null)) return "";
+    return '<div class="inote"><div><b>Put the app on your home screen</b><span>Opens like a normal app and works without internet.</span></div>' +
+      '<button class="btn small" data-a="install">Install</button><button class="x" data-a="no-install" aria-label="Hide">×</button></div>';
+  }
   function installHelp() {
     openSheet("Install the app", '<div class="card"><p style="margin-top:0"><b>On a phone:</b> open the browser menu (⋮ or the share button) and choose <b>Add to Home screen</b> or <b>Install app</b>.</p>' +
       '<p style="margin-bottom:0"><b>On a computer (Chrome or Edge):</b> click the install icon at the right end of the address bar, or the ⋮ menu, then <b>Install</b>.</p></div>');
@@ -1276,7 +1288,11 @@ animation:spark .9s cubic-bezier(.15,.7,.3,1) both}
         soon: Math.max(0, Math.min(90, parseNum(o.soon) == null ? 30 : Math.round(parseNum(o.soon)))), u: Date.now() });
       S.theme = o.theme; applyTheme(); view.q = null; done("Settings saved");
     }
-    else if (a === "install") { if (window.__bip) { window.__bip.prompt(); window.__bip = null; } else installHelp(); }
+    else if (a === "install") {
+      if (window.__bip) { var ev = window.__bip; window.__bip = null; ev.prompt(); ev.userChoice.then(function (r) { if (r.outcome === "accepted") { flag("installed"); render(); } }); }
+      else installHelp();
+    }
+    else if (a === "no-install") { flag("noInstall"); render(); }
     else if (a === "backup") {
       var bk = clone(S); bk.kind = "backup"; if (document.getElementById("withPhotos") && document.getElementById("withPhotos").checked) bk.photos = PH;
       download("mtd-backup-" + realToday() + ".json", JSON.stringify(bk), "application/json"); S.backupAt = new Date().toISOString(); save(); render(); toast("Backup saved");
@@ -1329,7 +1345,8 @@ animation:spark .9s cubic-bezier(.15,.7,.3,1) both}
     }
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
-  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); window.__bip = e; });
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); window.__bip = e; if (S && view.tab === "home") render(); });
+  window.addEventListener("appinstalled", function () { window.__bip = null; flag("installed"); if (S) render(); });
 
   Promise.all([store.get(KEY), store.get(PKEY)]).then(function (v) {
     S = valid(v[0]) ? fix(v[0]) : emptyState(); PH = v[1] || {};
